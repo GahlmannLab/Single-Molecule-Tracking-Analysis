@@ -1,0 +1,13 @@
+The Oufti software package performs sub-pixel precision detection and 
+quantification of cells and fluorescence signals.  The software is fully
+automated and provides interactive modules for cell detection, segmentation, 
+data visualization, movie-generation, and post-processing analysis, among others. 
+
+Copyright (c) 2015, the Jacobs-Wagner lab, Yale University.
+
+This program is free software: you can redistribute it and/or modify it under 
+the terms of the GNU General Public License as published by the Free Software 
+Foundation, either version 3 of the License, or (at your option) any later 
+version.
+
+The license terms can be viewed at http://www.gnu.org/licenses.
