@@ -174,7 +174,7 @@ end
 % edges = 0:0.1:10;
 % histogram(allMSD,edges);
 % title(['Diffusion Coefficients: ' num2str(length(allMSD)) ' Tracks']);
-% xlabel('Diffusion Coefficient (µm^2/s)');
+% xlabel('Diffusion Coefficient (Âµm^2/s)');
 % ylabel('Number of Occurances');
 
 % diffThresh = 0.1;
@@ -267,7 +267,7 @@ totalMeanDiff2 = mean(totalDiff2)
 % figure;
 % hold on;
 % title(['Diffusion Coefficients: ' num2str(length(totalDiff2)) ' Tracks, ' num2str(numCells) ' Cells ']);
-% xlabel('Diffusion Coefficient (µm^2/s)');
+% xlabel('Diffusion Coefficient (Âµm^2/s)');
 % ylabel('Probability Density');
 % 
 % edges = 0:0.05:10;
