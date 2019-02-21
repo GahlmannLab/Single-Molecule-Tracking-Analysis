@@ -141,7 +141,7 @@ if sum(outFix(:,2) < minThresh)
     end
 end
 
-%Next, if there are components with d* < 0.50 µm^2/s, hold them constant
+%Next, if there are components with d* < 0.50 Âµm^2/s, hold them constant
 outFix2 = outFix(outFix(:,1)>0.5,:);
 x0_Fix_temp = outFix(outFix(:,1)<=0.5,:);
 x0_Fix = [x0_Fix_temp(:,2)' x0_Fix_temp(:,1)'];
