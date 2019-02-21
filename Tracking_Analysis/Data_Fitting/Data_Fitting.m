@@ -38,7 +38,7 @@ isMinflux = str2double(tempAns{4});
 S = load([dataPath1 dataFile1], dataFile1(1:end-4));      % experimental data
 data = struct2array(S);
 
-% Remove datapoints > 20 µm^2/s for difussion coefficients, 2500 nm for
+% Remove datapoints > 20 Âµm^2/s for difussion coefficients, 2500 nm for
 % displacement distribtuions, or 250 nm for Minflux data so that curve
 % interpolation is monotonically increasing.
 if isMinflux
