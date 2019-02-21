@@ -2,7 +2,7 @@ function val = DEBOOR(T,p,y,order)
 
 % function val = DEBOOR(T,p,y,order)
 %
-% INPUT:  T     Stützstellen ;support points
+% INPUT:  T     StÃ¼tzstellen ;support points
 %         p     Kontrollpunkte (nx2-Matrix); control points
 %         y     Auswertungspunkte (Spaltenvektor); break point vector
 %         order Spline-Ordnung; order
