@@ -1,6 +1,7 @@
 interpxVals = [];
 yVals = [];
-vVals = [];
+vVals = []; 
+
 
 %range of the distribution
 xq = 0:0.001:25;
