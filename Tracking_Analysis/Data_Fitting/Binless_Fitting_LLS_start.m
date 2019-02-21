@@ -52,7 +52,7 @@ nterm = (length(x0)+1)/2;
 %ntermf is the number of fixed species
 ntermf = length(x0_Fix)/2;
 
-%set lower bounds of diffusion coefficients to 0.05 µm^2/s because we can
+%set lower bounds of diffusion coefficients to 0.05 Âµm^2/s because we can
 %not distinguish any value lower than that
 
 %set lower bounds of population fractions to 0.05 (5%) again because we can
