@@ -35,13 +35,13 @@ for d = 10
     
     %calibration files from experimental data set (reflected channel)
     %same size as cell regions (97x97 pixels)
-    load('DHPSF_darkImg_2.mat')
+    load('DHPSF_darkImg.mat')
     DHPSF_darkImg = DHPSF_darkImg;
     
-    load('DHPSF_readN_2.mat');
+    load('DHPSF_readN.mat');
     DHPSF_readN = DHPSF_readN;
     
-    load('DHPSF_gain_2.mat');
+    load('DHPSF_gain.mat');
     DHPSF_gain = DHPSF_gain;
     
     
