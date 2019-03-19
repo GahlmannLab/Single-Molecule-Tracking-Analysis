@@ -1,4 +1,4 @@
-function x = brownian_motion_simulation_DHPSF ()
+function fiberData = brownian_motion_simulation_DHPSF (diffCoeff)
 % brownian_motion_simulation_DHPSF simulates Brownian motion of diffusive
 % molecules. This function produces images of the double-helix
 % point-spread-function (DHPSF) based on the position of the molecule at a
@@ -7,11 +7,10 @@ function x = brownian_motion_simulation_DHPSF ()
 % volume of a cylinder (the approximate shape of a rod-shaped bacteria).
 
 %Diffusion Coefficient to simulate, d
-% for d = 1:1:15
-for d = 10
+for d = diffCoeff
     
     %The number of trajectories
-    numTracks = 50;
+    numTracks = 10;
     
     %l is half the total length of the cylinder (µm)
     l = 2.5;
@@ -20,7 +19,7 @@ for d = 10
     r = 0.4;
     
     %image size
-    pixSize = 108; %nm
+    pixSize = 108; %pixel size in nm
     imgSize = 2*(round(l*1000/pixSize)) + 51;
     
     
@@ -35,12 +34,15 @@ for d = 10
     
     %calibration files from experimental data set (reflected channel)
     %same size as cell regions (97x97 pixels)
+    %darkImg is an average of 200 frames of images taken in darkness
     load('DHPSF_darkImg.mat')
     DHPSF_darkImg = DHPSF_darkImg;
     
+    %readN is the average read noise for each pixel
     load('DHPSF_readN.mat');
     DHPSF_readN = DHPSF_readN;
     
+    %gain is the gain calculated for each pixel
     load('DHPSF_gain.mat');
     DHPSF_gain = DHPSF_gain;
     
@@ -80,8 +82,6 @@ for d = 10
         %     for k = 1:numTracks
         
         %initialize temporary variables
-        tempTrack = [];
-        x = [];
         dx = [];
         xTemp = [];
         
@@ -182,7 +182,7 @@ for d = 10
         %mid-point of the duration of the frame
         tracksFinal{k} = tempTrack(idxTemp,:);
         
-        if time(k,1) > T - ((n/(exposure/dt))-1)*exposure;
+        if time(k,1) > T - ((n/(exposure/dt))-1)*exposure
             tracksFinal{k} = [];
             tempTime = [];
         else
@@ -363,8 +363,9 @@ for d = 10
     end
     
     %name the save file
-    filename = ['d', num2str(d),'_r', num2str(r*1000),'nm_dt',...
-        num2str(exposure*1000),'ms_',num2str(numTracks),'tracks_DHPSF2'];
+    filename = ['d', num2str(d),'_r', num2str(r*1000),'nm_L', ...
+        num2str(2*l*1000),'nm_dt',num2str(exposure*1000),'ms_',...
+        num2str(numTracks),'tracks_DHPSF'];
     
     
     %remove images from fiberData so that the file can be saved properly
