@@ -1,4 +1,4 @@
-function fiberData = brownian_motion_simulation_DHPSF (diffCoeff)
+function filename = brownian_motion_simulation_DHPSF (diffCoeff)
 % brownian_motion_simulation_DHPSF simulates Brownian motion of diffusive
 % molecules. This function produces images of the double-helix
 % point-spread-function (DHPSF) based on the position of the molecule at a
@@ -6,11 +6,13 @@ function fiberData = brownian_motion_simulation_DHPSF (diffCoeff)
 % acquired images. The Brownian motion is simulated to be confined to the
 % volume of a cylinder (the approximate shape of a rod-shaped bacteria).
 
+idx = 0;
+filename = cell(length(diffCoeff),1);
 %Diffusion Coefficient to simulate, d
 for d = diffCoeff
-    
+    idx = idx +1;
     %The number of trajectories
-    numTracks = 10;
+    numTracks = 5000;
     
     %l is half the total length of the cylinder (µm)
     l = 2.5;
@@ -363,7 +365,7 @@ for d = diffCoeff
     end
     
     %name the save file
-    filename = ['d', num2str(d),'_r', num2str(r*1000),'nm_L', ...
+    filename{idx} = ['d', num2str(d),'_r', num2str(r*1000),'nm_L', ...
         num2str(2*l*1000),'nm_dt',num2str(exposure*1000),'ms_',...
         num2str(numTracks),'tracks_DHPSF'];
     
@@ -372,7 +374,8 @@ for d = diffCoeff
     fiberData = rmfield(fiberData,'trackImg');
     %save file
     
-    filename = strrep(filename, '.', '-');
-    save([filename '.mat'],'-v7.3');
+    filename{idx} = strrep(filename{idx}, '.', '-');
+    save([filename{idx} '.mat'],'-v7.3');
     
+end
 end
