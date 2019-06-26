@@ -1,5 +1,5 @@
 
-function shut_pos_gui_v7_OBIS(data)
+function shut_pos_gui(data)
 %% Initialization
 % MCLNanoDriveStage;
 MCLNanoDriveStage.ReleaseAllHandles; % remove handles from nanodrive
