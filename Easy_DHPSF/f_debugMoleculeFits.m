@@ -62,16 +62,10 @@ function f_debugMoleculeFits(totalPSFfits,numFrames,dataFile,dataPath,...
     templatePad = zeros(numTemplates,cropHeight,cropWidth);
     templateFT = zeros(numTemplates,cropHeight,cropWidth);
         for a=1:numTemplates
-%             
-%             if strcmp(templateFile(length(templateFile)-2:length(templateFile)),'tif')
-%                 templatePad(a,:,:) = padarray(squeeze(template(a,:,:)),...
-%                     [(cropHeight-size(template,2))/2 ...
-%                     (cropWidth-size(template,3))/2],min(min(template(a,:,:))));
-%             else
+
                 templatePad(a,:,:) = padarray(squeeze(template(templateFrames(a),:,:)),...
                     [(cropHeight-size(template,2))/2 ...
                     (cropWidth-size(template,3))/2],min(min(template(templateFrames(a),:,:))));
-%             end
             
             % multiplying by conjugate of template in FT domain is equivalent
             % to flipping the template in the real domain
@@ -96,10 +90,7 @@ function f_debugMoleculeFits(totalPSFfits,numFrames,dataFile,dataPath,...
             darkAvg = darkAvg + double(imread(darkFile,dframe,'Info',darkFileInfo));
         end
         darkAvg = darkAvg/numDarkFrames;
-%         if ~isequal(size(darkAvg),[imgHeight imgWidth])
-%             warning('Dark count image and data image stack are not the same size. Resizing dark count image...');
-%             darkAvg = imresize(darkAvg,[imgHeight imgWidth]);
-%         end
+
     else
         darkAvg = 0;
     end
@@ -119,7 +110,6 @@ function f_debugMoleculeFits(totalPSFfits,numFrames,dataFile,dataPath,...
     };
     num_lines = 1;
     inputdialog = inputdlg(prompt,dlg_title,num_lines,def);
-    % fitParam = totalPSFfits(:,1:8);
     frames=str2num(inputdialog{1});
     printOutputFrames = strcmp(inputdialog{2},'Yes');
     
@@ -186,10 +176,8 @@ function f_debugMoleculeFits(totalPSFfits,numFrames,dataFile,dataPath,...
 
                 % normalize response of peakImg by dividing by number of pixels in
                 % data
-                %peakImg = peakImg / (cropHeight*cropWidth);
                 maxPeakImg = max(maxPeakImg, peakImg);
 
-                %threshold = mean(peakImg(:))+peakThreshold*std(peakImg(:));
                 peakImg(peakImg < peakThreshold(fileNum,b)) = peakThreshold(fileNum,b);
 
                 if isreal(peakImg) && sum(sum(isnan(peakImg)))==0
@@ -203,7 +191,7 @@ function f_debugMoleculeFits(totalPSFfits,numFrames,dataFile,dataPath,...
 
                 % make sure threshold didn't eliminate all peaks and create
                 % lots of matches
-                if length(temp) < cropHeight*cropWidth/2;
+                if length(temp) < cropHeight*cropWidth/2
                     [tempY, tempX] = ind2sub([cropHeight cropWidth],temp);
                     PSFLocs(numPSFLocs+(1:length(temp)),:) = ...
                         [tempX tempY b*ones(length(temp),1) peakImg(temp)];
@@ -268,9 +256,6 @@ function f_debugMoleculeFits(totalPSFfits,numFrames,dataFile,dataPath,...
         if exist('threshFile')
             hold on;
             for b=1:numPSFLocs
-                %plot(PSFLocs(b,1), PSFLocs(b,2), 'o', ...
-                %    'MarkerSize', 15*PSFLocs(b,4)/peakThreshold(b), ...
-                %    'MarkerEdgeColor', templateColors(PSFLocs(b,3),:));
                 plot(PSFLocs(b,1), PSFLocs(b,2), 'o', ...
                     'MarkerSize', 15*PSFLocs(b,4)/peakThreshold(fileNum,PSFLocs(b,3)), ...
                     'MarkerEdgeColor', templateColors(PSFLocs(b,3),:));
@@ -280,7 +265,7 @@ function f_debugMoleculeFits(totalPSFfits,numFrames,dataFile,dataPath,...
         title({['Frame ' num2str(i) ': raw data - darkAvg counts'] ...
             ['ROI [xmin ymin width height] = ' mat2str(ROI)]});
         
-        if exist('threshFile');
+        if exist('threshFile')
             subplot('Position',[0.125+2*.85/3 0.025 .85/3 .95]);
         else
             subplot(1,2,2)
@@ -304,7 +289,6 @@ function f_debugMoleculeFits(totalPSFfits,numFrames,dataFile,dataPath,...
         clear fileNum
     end
     close(hSMfits)
-    %% generates a .csv and/or .mat containing fits, + a histogram of errors
     
     
     
@@ -320,26 +304,8 @@ function f_debugMoleculeFits(totalPSFfits,numFrames,dataFile,dataPath,...
                           'good fit'})
     set(gca,'FontSize',8);
 
-%     print(hErrors,'-dpng',[outputPrefixImages 'outcomes 1.png']);
     saveas(hErrors,[outputPrefixImages 'outcomes.png']);
-    
-    %% print .csv
-    % open a file for writing
-%     [fid,message] = fopen([debugPath debugFile], 'w');
-%     if ~isempty(message)
-%         error([debugPath debugFile ': ' message]);
-%         %return;
-%     end
-%     % print a title, followed by a blank line
-%     fprintf(fid, ['frame num,fit flag,SM idx in frame,template x (pix),template y (pix), template idx,' ...
-%         'match strength,amp1,amp2,peak1 x (pix),peak1 y (pix),' ...
-%         'peak2 x (pix),peak2 y (pix), sigma1 (pix),sigma2 (pix),mean bkgnd photons,'...
-%         'fit error,molecule x (nm),molecule y (nm),DHPSF angle,' ...
-%         'num photons,interlobe distance,amplitude ratio,sigma ratio,x fid-corrected (nm),y fid-corrected (nm), z fid-corrected (nm),'...
-%         'photons detected,mean background photons\n']);
-%     fclose(fid);
-% 
-%     dlmwrite([debugPath debugFile],totalPSFfits(:,[1 17 2:16 18:end]),'-append');
+
     save([outputPrefix  'debug output.mat']);
     disp('Debug files written successfully.');
 end
