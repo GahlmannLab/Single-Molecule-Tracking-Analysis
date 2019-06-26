@@ -26,9 +26,8 @@
 % SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 function [totalPSFfits, numFrames, fidTrackX, fidTrackY, fidTrackZ,spatialCorr,useCurrent] = ...
-    f_concatSMfits(fitFilePrefix,useFidCorrections,fidFilePrefix,logFile,logPath,channel,calFile,currFidIdx)
-%clear all;
-% close all;
+    f_concatSMfits(fitFilePrefix,useFidCorrections,fidFilePrefix,channel,calFile,currFidIdx)
+
 numSyncFrames = 25;
 useDenoising = 1;
 
@@ -44,40 +43,15 @@ end
 %do not use spatially dependent calibrations
 spatialCorr = false;
 
-% %Construct a questdlg with three options
-% dlg_title = 'Use local cals?';
-% prompt = { 'Do you want to try to use spatially dependent calibrations?' };
-% def =       { 'No'  };
-% questiondialog = questdlg(prompt,dlg_title, def);
-% % Handle response
-% switch questiondialog
-%     case 'Yes'
-%         spatialCorr=true;
-%     case 'No'
-%         spatialCorr=false;
-%     case 'Cancel'
-%         error('User cancelled the program');
-% end
-
-% Can use sif logs to filter which frames are included for fiducial correction.
-% If logPath set to 0, all frames are used (every frame with a visible fiducial,
-% even when the 'wrong' laser is on).
-% Set to 0 because it is not clear that using filtering is ideal: sometimes
-% using the frames with the 'wrong laser' can introduce a slight bias, but
-% sometimes (especially for z traces) having extra frames is worth it,
-% unless we can find a good way for waveletFidTracks to 'estimate' what's
-% going on in large gaps
 
 logFile=0; logPath=0; %channel=[];
 
 %% prepare fiducial data / blank out fiducial arrays
 if useFidCorrections
     %% load raw fiduciary data
-    % [fidFile fidPath] = uigetfile({'*.mat';'*.*'},'Open data file #1 with raw fiduciary fits');
-    %     for fileNum=1:length(fidFilePrefix)
+
     for fileNum=1:1
-        %         fidFiles = [fidFiles; {[fidPath fidFile]}];
-        % load data
+
         if exist([fidFilePrefix{fileNum} 'raw fits.mat']) == 2
             load([fidFilePrefix{fileNum} 'raw fits.mat'],'PSFfits','numFrames','numMoles');
         else
@@ -97,26 +71,13 @@ if useFidCorrections
             tempPSFfits = [tempPSFfits; PSFfits(:,1:23)];
         end
         
-        %         fileNum = fileNum+1;
-        %         [fidFile fidPath] = uigetfile({'*.mat';'*.*'},...
-        %             ['Open data file #' num2str(fileNum) ' with raw fiduciary fits']);
+
     end
     PSFfits = tempPSFfits;
     numFrames = sum(numFramesInFiles);
     clear tempPSFfits;
     
     %% allow user to use a different spectrum for fid, or use spatially dependent calibration if selected above
-%     [fidSaveFile, fidSavePath] = uigetfile({'*.mat';'*.*'},...
-%         'If drift fiducial has different spectrum, open its easy-dhpsf save now (optional: hit cancel to skip)',...
-%         'MultiSelect', 'off');
-%     if ~isequal(fidSaveFile,0)
-%         load([fidSavePath,fidSaveFile],channel);
-%         fidCalFile = [eval([channel '.calFilePrefix']) 'calibration.mat'];
-%         clear(channel);
-%         PSFfits = makeLocalCals(PSFfits,fidCalFile,'FID');
-%     elseif spatialCorr
-%         PSFfits = makeLocalCals(PSFfits,calFile,'FID');
-%     end
     
     
     fidTrackX = NaN(size(PSFfits,1),numMoles);
@@ -133,28 +94,11 @@ if useFidCorrections
         goodFitFlag(:,molecule) = moleculeFitParam(:,13);
         goodFit = goodFitFlag(:,molecule) > 0;
         
-        % only use fits that have correct laser on (from sif log)
-        if ischar(logFile)
-            logFile = cellstr(logFile);
-        end
-        if ~isequal(logPath,0) % assuming only one sif for whole fiducial track
-            sifLogData =  importdata([logPath logFile{1}]);
-            %sifLogData = sifLogData(absFrameNum:absFrameNum+numFrames-1,:);
-            %absFrameNum = numFrames;
-            if channel == 'g'
-                goodFit = sifLogData(:,2) == 1 & goodFit;
-            elseif channel == 'r'
-                goodFit = intersect(sifLogData(:,3) == 1,goodFit);
-            end
-        end
-        
         % raw positions of the fiducial tracks
         fidTrackX(goodFit,molecule) = moleculeFitParam(goodFit,21);
         fidTrackY(goodFit,molecule) = moleculeFitParam(goodFit,22);
         fidTrackZ(goodFit,molecule) = moleculeFitParam(goodFit,23);
-        %     numPhotons(:,molecule) = moleculeFitParam(:,17);
-        
-        
+  
     end
 else
     fidTrackX = NaN;
@@ -175,8 +119,6 @@ if useFidCorrections
     avgDevZ = zeros(numFrames,1);
     numValidFits = zeros(numFrames,1);
     
-    %     textHeader = {'frame number' 'deviation in x (nm)' 'deviation in y (nm)' ...
-    %         'deviation in z (nm)' 'good fit flag' 'number of photons'};
     
     syncFrames = zeros(1,numSyncFrames);
     lastGoodFrame = numFrames;
@@ -217,19 +159,6 @@ if useFidCorrections
         devX(:,molecule) = moleculeFitParam(:,21) -nanmean(moleculeFitParam(goodFit,21));
         devY(:,molecule) = moleculeFitParam(:,22) -nanmean(moleculeFitParam(goodFit,22));
         devZ(:,molecule) = moleculeFitParam(:,23) -nanmean(moleculeFitParam(goodFit,23));
-        %         devX(:,molecule) = moleculeFitParam(:,21) ...
-        %             - mean(moleculeFitParam(any(bsxfun(@eq,moleculeFitParam(:,1), syncFrames),2),21));
-        %         devY(:,molecule) = moleculeFitParam(:,22) ...
-        %             - mean(moleculeFitParam(any(bsxfun(@eq,moleculeFitParam(:,1), syncFrames),2),22));
-        %         devZ(:,molecule) = moleculeFitParam(:,23) ...
-        %             - mean(moleculeFitParam(any(bsxfun(@eq,moleculeFitParam(:,1), syncFrames),2),23));
-        %         numPhotons(:,molecule) = moleculeFitParam(:,17);
-        
-        % write fiduciary data to Excel spreadsheet
-        %         xlswrite([saveFilePrefix 'fiduciary deviations.xlsx'], ...
-        %             [textHeader; num2cell([(1:numFrames)' devX(:,molecule) devY(:,molecule) ...
-        %             devZ(:,molecule) goodFitFlag(:,molecule) numPhotons(:,molecule)])], ...
-        %             ['fiduciary ' num2str(molecule)]);
         
         % if particle was fit successfully, add its movement to the average
         avgDevX = avgDevX + goodFit.*devX(:,molecule);
@@ -245,21 +174,6 @@ end
 
 
 if exist('tempAvgDevX','var')
-    %     textHeader = {'frame number' 'deviation in x (nm)' 'deviation in y (nm)' ...
-    %         'deviation in z (nm)' 'number of valid fiduciaries'};
-    %
-    %     xlswrite([saveFilePrefix 'fiduciary deviations.xlsx'], ...
-    %         [textHeader; num2cell([(1:numFrames)' tempAvgDevX tempAvgDevY  ...
-    %         tempAvgDevZ numValidFits])], 'average of all fiduciaries');
-    %
-    %     xlswrite([saveFilePrefix 'fiduciary deviations.xlsx'], ...
-    %         [{'fiduciary files' 'Number of frames'}; ...
-    %         fidFiles num2cell(numFramesInFiles')], ...
-    %         'concatenation info');
-    
-    % load localization data
-    %     moleFiles = {};
-    
     
     for c = 1:fileNum
         % load data
@@ -332,21 +246,6 @@ if exist('tempAvgDevX','var')
     totalPSFfits = [totalPSFfits xFidCorrected yFidCorrected zFidCorrected];
     clear tempAvgDevX tempAvgDevY tempAvgDevZ;
     
-    % output corrected data
-    %     save([saveFilePrefix 'molecule fits.mat']);
-    
-    % output excel spreadsheet
-    %     textHeader = [textHeader {'fiduciary corrected x location (nm)' ...
-    %         'fiduciary corrected y location (nm)' ...
-    %         'fiduciary corrected z location (nm)'}];
-    
-    %     xlswrite([saveFilePrefix 'molecule fits.xlsx'], [textHeader; ...
-    %         num2cell(totalPSFfits)], ...
-    %         'PSF fits');
-    %     xlswrite([saveFilePrefix 'molecule fits.xlsx'], ...
-    %         [{'fiduciary files' 'localization files' 'Number of frames'}; ...
-    %         fidFiles moleFiles num2cell(numFramesInFiles')], ...
-    %         'concatenation info');
     
 else
     % just concatenate PSF fits together without compensating for drift
@@ -380,9 +279,7 @@ else
             tempPSFfits = [tempPSFfits; totalPSFfits(:,1:27)];
         end
         
-        %         fileNum = fileNum+1;
-        %         [moleFile molePath] = uigetfile({'*.mat';'*.*'},...
-        %             ['Open data file #' num2str(fileNum) ' with PSF localizations']);
+
     end
     % call 'numFrames' to match the fiducial-corrected terminology
     numFrames = numFramesInFiles;
@@ -430,17 +327,6 @@ else
     fidTrackY = [];
     fidTrackZ = [];
     
-    % output concatenated data
-    %     save([saveFilePrefix 'molecule fits.mat']);
-    
-    % output excel spreadsheet
-    %     xlswrite([saveFilePrefix 'molecule fits.xlsx'], [textHeader; ...
-    %         num2cell(totalPSFfits)], ...
-    %         'PSF fits');
-    %     xlswrite([saveFilePrefix 'molecule fits.xlsx'], ...
-    %         [{'localization files' 'Number of frames'}; ...
-    %         moleFiles num2cell(numFramesInFiles')], ...
-    %         'concatenation info');
     
 end
 
@@ -486,10 +372,7 @@ goodFits = PSFfits(:,goodFitCol)>0;
 if exist('calBeadIdx') && calBeadIdx ~= 0
     calNN(:)=calBeadIdx;
 end
-%goodFit_forward = logical(squeeze(goodFit_f(1,calBeadIdx,:)));
 
-% for fids: this easily tests whether fid drifts between cals
-% figure; hist(calNN(goodFits,:),1:numCals)
 
 for i = 1:numCals % loop over each cal and redo points near that cal
     goodFit_forward = logical(squeeze(goodFit_f(1,i,:)));
