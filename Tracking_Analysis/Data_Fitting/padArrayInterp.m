@@ -1,4 +1,6 @@
 function [xf yf] = padArrayInterp(xi,yi,xq)
+% Julian Rocha
+
 %This function pads the data so that the interpolation can sample the full
 %range appropriately.   
 
