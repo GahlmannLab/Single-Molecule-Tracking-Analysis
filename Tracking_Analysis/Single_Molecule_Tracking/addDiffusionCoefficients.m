@@ -1,3 +1,5 @@
+% Julian Rocha
+
 %addDiffusionCoefficients
 % This function inputs several separate files with diffusion coefficient
 % information and combines them. This is typically used to combine data for
