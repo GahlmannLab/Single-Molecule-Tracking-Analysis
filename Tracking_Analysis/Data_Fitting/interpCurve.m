@@ -1,4 +1,6 @@
 function [curveInterp xData yData] = interpCurve(diffData,xq)
+% Julian Rocha
+
 % diffData is the raw diffusion coefficient/displacement data
 % xq are the query points
 
