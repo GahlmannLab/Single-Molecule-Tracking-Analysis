@@ -1,4 +1,5 @@
 function [xParam errorOut] =  Binless_Fitting_LLS_start(diffData,F,x0,x0_Fix,isCDF,isDiff,isMinflux)
+% Julian Rocha
 
 % Binless_Fitting uses a linear combination of basis functions from a set of
 % basis functions to to curve fit diffData.
