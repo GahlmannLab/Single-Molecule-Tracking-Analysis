@@ -1,5 +1,7 @@
 
 function [x0_Final x0_Fix numStatesLLS] = LLS_NumStates_Initial(C,dMax,dRange,resolution,xq,data,numStatesMax,isCDF)
+% Julian Rocha
+
 % This fucntions perform a linear least squares fitting to get an initial guess for the
 % number of diffusive states present
 
