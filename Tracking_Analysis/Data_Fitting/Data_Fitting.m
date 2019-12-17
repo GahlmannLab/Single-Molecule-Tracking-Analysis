@@ -1,4 +1,6 @@
-%% Data Fitting
+% Julian Rocha
+
+%Data Fitting
 %This function takes a distribution of diffusion coefficients for molecular
 %displacements and fits the distribution with simulated distribution(s).
 
