@@ -1,3 +1,5 @@
+% Julian Rocha
+
 % Tracking MSD
 %   This function takes the localizations output from a single-molecule
 %   experiment and links the localizations into trajectories. The
