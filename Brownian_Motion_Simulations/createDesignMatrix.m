@@ -1,3 +1,5 @@
+% Julian Rocha
+
 %createDesignMatrix
 %This function creates a matrix of curves from the scatteredInterpolant F,
 %for linear fitting of curves
