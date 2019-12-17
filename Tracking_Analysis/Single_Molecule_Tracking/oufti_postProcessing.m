@@ -1,3 +1,5 @@
+% Julian Rocha
+
 %Oufti_postProcessing
 % This function inputs the information output from oufti_preProcessing, the
 % cell outlines output from Oufti, and the localizations obtained from
