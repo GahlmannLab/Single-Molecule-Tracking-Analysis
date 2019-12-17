@@ -1,4 +1,6 @@
 function filename = brownian_motion_simulation_DHPSF (diffCoeff)
+% Julian Rocha
+
 % brownian_motion_simulation_DHPSF simulates Brownian motion of diffusive
 % molecules. This function produces images of the double-helix
 % point-spread-function (DHPSF) based on the position of the molecule at a
