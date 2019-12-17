@@ -1,3 +1,5 @@
+% Julian Rocha
+
 %plotDataFitting
 % This function will plot the PDF of the data as well as the fitted curves
 
