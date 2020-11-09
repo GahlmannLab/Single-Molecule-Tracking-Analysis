@@ -1,6 +1,5 @@
-function filename = brownian_motion_simulation_DHPSF (diffCoeff)
+function  brownian_motion_simulation_DHPSF
 % Julian Rocha
-
 % brownian_motion_simulation_DHPSF simulates Brownian motion of diffusive
 % molecules. This function produces images of the double-helix
 % point-spread-function (DHPSF) based on the position of the molecule at a
@@ -8,13 +7,12 @@ function filename = brownian_motion_simulation_DHPSF (diffCoeff)
 % acquired images. The Brownian motion is simulated to be confined to the
 % volume of a cylinder (the approximate shape of a rod-shaped bacteria).
 
-idx = 0;
-filename = cell(length(diffCoeff),1);
 %Diffusion Coefficient to simulate, d
-for d = diffCoeff
-    idx = idx +1;
+% pathname = uigetdir([], 'Select a folder for simulation deposit');
+for d = [1,15]
+%     tic
     %The number of trajectories
-    numTracks = 5000;
+    numTracks = 2000;
     
     %l is half the total length of the cylinder (µm)
     l = 2.5;
@@ -23,7 +21,7 @@ for d = diffCoeff
     r = 0.4;
     
     %image size
-    pixSize = 108; %pixel size in nm
+    pixSize = 108; %nm
     imgSize = 2*(round(l*1000/pixSize)) + 51;
     
     
@@ -38,26 +36,23 @@ for d = diffCoeff
     
     %calibration files from experimental data set (reflected channel)
     %same size as cell regions (97x97 pixels)
-    %darkImg is an average of 200 frames of images taken in darkness
-    load('DHPSF_darkImg.mat')
+    load('DHPSF_darkImg_2.mat')
     DHPSF_darkImg = DHPSF_darkImg;
     
-    %readN is the average read noise for each pixel
-    load('DHPSF_readN.mat');
+    load('DHPSF_readN_2.mat');
     DHPSF_readN = DHPSF_readN;
     
-    %gain is the gain calculated for each pixel
-    load('DHPSF_gain.mat');
+    load('DHPSF_gain_2.mat');
     DHPSF_gain = DHPSF_gain;
     
     
     %number of dimensions
     m = 3;
     %exposure time,s. This is set to match the experimental camera rate.
-    exposure = 0.025;
+    exposure = 0.010; % 10 ms
     %dt is the short time step of the trajectory. This value must be much
     %lower than the exposure time.
-    dt = 0.0000001;
+    dt = 0.0000001; % 100 ns
     %track length = 6
     trackLength = 6;
     %add 2 to pad track
@@ -81,17 +76,26 @@ for d = diffCoeff
     %x,y,z localizations for a trajectory
     tracksFinal = cell(numTracks,1);
     
+    tracksFine = cell(numTracks,1);
     %Parfor loop can be used instead to decrease computational time
-    parfor k = 1:numTracks
-        %     for k = 1:numTracks
-        
+    for k = 1:numTracks
         %initialize temporary variables
+        tempTrack = [];
+        x = [];
         dx = [];
         xTemp = [];
         
         %Randomly set initial points of the track in the cylinder
-        z0 = 2*r*rand(1,1) - r;
-        y0(1,1) = 2*sqrt((r^2 - (abs(z0(1,1)))^2))*rand(1,1) - sqrt((r^2 - (abs(z0(1,1)))^2));
+        %         z0 = 2*r*rand(1,1) - r;
+        %         y0(1,1) = 2*sqrt((r^2 - (abs(z0(1,1)))^2))*rand(1,1) - sqrt((r^2 - (abs(z0(1,1)))^2));
+        
+        % --------------Below modified by Ting Yan------------------
+        rnd_r = r*(rand(1,1)^(1/2));
+        rnd_theta = 2*pi*rand(1,1);
+        z0 = rnd_r*sin(rnd_theta);
+        y0 = rnd_r*cos(rnd_theta);
+        % --------------modification done------------------
+        
         x0 = 2*l*rand(1,1) - l;
         
         x = zeros(m,n);
@@ -113,44 +117,191 @@ for d = diffCoeff
         %Make sure the molecule remains in cylinder. If the molecule lands
         %outside of the cylinder, reflect it back inside the cylinder at a
         %random angle.
+        % The next position is dependent on the previous position.
         for c = 1:n-1
-            check = x(:,c) + dx(:,c);
-            if abs(check(1,1)) > l
-                if check(1,1) < 0
-                    xTemp(1,1) = check(1,1)+l;
-                    x(1,c+1) = -l - xTemp(1,1);
-                else
-                    xTemp(1,1) = check(1,1)-l;
-                    x(1,c+1) = l - xTemp(1,1);
-                end
-            else
-                x(1,c+1) = check(1,1);
-            end
-            if sqrt(check(2,1)^2 + check(3,1)^2) > r
-                dTemp = sqrt(dx(2,c)^2 + dx(3,c)^2);
-                yTemp = x(2,c);
-                zTemp = x(3,c);
-                pass = 0;
-                while pass == 0
-                    if sqrt(yTemp^2 + zTemp^2) > r
-                        a = randn(2,1);
-                        v = a*(dTemp/sqrt(sum(a.^2)));
-                        yTemp = x(2,c) + v(1);
-                        zTemp = x(3,c) + v(2);
-                    else
-                        pass = 1;
+            
+            check = x(:,c) + dx(:,c); % new position
+            
+            % below modified by Ting Yan and Michele Poblete. When a
+            % molecule is hitting the boundary of cells, the intersecting
+            % point is calculated and then it will be reflected back into
+            % cells. The trajectory length it travels through remains
+            % unchanged.
+            
+            if sqrt(check(2,1)^2 + check(3,1)^2) > r || abs(check(1,1))> l
+                %outside = outside + 1;
+                %tic
+                hitcap = false;
+                if (sqrt(check(2,1)^2 + check(3,1)^2) > r && abs(check(1,1))> l)
+                    % decide which boundary the molecule hits first.
+                    % -------- Below modified by Mika Poblete -------- %
+                    % Constants for system of equations
+                    % y^2 + z^2 = r^2
+                    % z = m*y + b
+                    
+                    % slope = (zf - z0) / (yf - y0)
+                    slope = (check(3,1) - x(3,c))/(check(2,1) - x(2,c));
+                    % b = (z0 - m * y0)
+                    b = x(3,c) - slope*x(2,c);
+                    % f = 1 + m^2
+                    f = 1 + slope^2;
+                    
+                    % Using (+) from quadratic formula
+                    y_cross = (-slope * b + sqrt(r^2 * (1 + slope^2) - b^2))/f;
+                    
+                    % Check to see if point is within the ray. find the correct
+                    % y. Then use line function to find z.
+                    alpha = (y_cross - x(2,c))/(check(2,1) - x(2,c));
+                    
+                    % if (0 < alpha) && (alpha < 1)
+                    if ~(alpha > 0 && alpha <1)
+                        % Must pick other point on the line
+                        % Using (-) from quadratic formula
+                        y_cross = (-slope * b - sqrt(r^2 * (1 + slope^2) - b^2))/f;
+                        alpha = (y_cross - x(2,c))/(check(2,1) - x(2,c)); % update alpha, which will be used to calculate the x position of the crossing point.
                     end
+                    x_cross = x(1,c) + alpha*dx(1,c); % calculate x
+                    
+                    if abs(x_cross)>l
+                        % hits cell cap first
+                        hitcap = true;
+                    else
+                        % hits cell body first
+                        hitcap = false;
+                    end
+                elseif sqrt(check(2,1)^2 + check(3,1)^2) <= r || abs(check(1,1))> l
+                    hitcap = true;
+                elseif sqrt(check(2,1)^2 + check(3,1)^2) > r || abs(check(1,1))<= l
+                    hitcap = false;
                 end
-                x(2,c+1) = yTemp;
-                x(3,c+1) = zTemp;
-            else
-                x(2,c+1) = check(2,1);
-                x(3,c+1) = check(3,1);
+                
+                if abs(check(1,1))< l ||  (~hitcap) % the molecule will hit the y_z wall first
+                    dTemp = sqrt(sum(dx(:,c).^2));
+                    % -------- Below modified by Mika Poblete -------- %
+                    % Constants for system of equations
+                    % y^2 + z^2 = r^2
+                    % z = m*y + b
+                    
+                    % slope = (zf - z0) / (yf - y0)
+                    slope = (check(3,1) - x(3,c))/(check(2,1) - x(2,c));
+                    % b = (z0 - m * y0)
+                    b = x(3,c) - slope*x(2,c);
+                    % f = 1 + m^2
+                    f = 1 + slope^2;
+                    
+                    % Using (+) from quadratic formula
+                    y_cross = (-slope * b + sqrt(r^2 * (1 + slope^2) - b^2))/f;
+                    
+                    % Check to see if point is within the ray. find the correct
+                    % y. Then use line function to find z.
+                    alpha = (y_cross - x(2,c))/(check(2,1) - x(2,c));
+                    
+                    % if (0 < alpha) && (alpha < 1)
+                    if ~(alpha > 0 && alpha <1)
+                        % Must pick other point on the line
+                        % Using (-) from quadratic formula
+                        y_cross = (-slope * b - sqrt(r^2 * (1 + slope^2) - b^2))/f;
+                        alpha = (y_cross - x(2,c))/(check(2,1) - x(2,c)); % update alpha, which will be used to calculate the x position of the crossing point.
+                        
+                    end
+                    
+                    z_cross = slope * y_cross + b; % calculate z.
+                    x_cross = x(1,c) + alpha*dx(1,c); % calculate x
+                    reflected_d = dTemp*(1-alpha); % the 3D length that is reflected back into the cell.
+                    %reflected_d = dTemp - sqrt((y_cross - x(2,c))^2 +(z_cross-x(3,c))^2 ); % the length that is reflected into the cylinder
+                    
+                elseif sqrt(check(2,1)^2 + check(3,1)^2) <= r || hitcap % hits cell cap first
+                    x_cross = sign(check(1))*l;
+                    y_cross = (x_cross - x(1,c))* dx(2,c)/dx(1,c) + x(2,c);
+                    z_cross = (x_cross - x(1,c))* dx(3,c)/dx(1,c) + x(3,c);
+                    reflected_d = dTemp - sqrt(sum(([x_cross, y_cross, z_cross]-x(:,c)').^2));
+                end
+                % re-direct the molecule into cells at a random angle.
+                xTemp = check(1);
+                yTemp = check(2);
+                zTemp = check(3);
+                
+                while sqrt(yTemp^2 + zTemp^2)> r || abs(xTemp)>l
+                    a = randn(3,1);
+                    v = a*(reflected_d/sqrt(sum(a.^2)));
+                    xTemp = x_cross + v(1); % new position x
+                    yTemp = y_cross + v(2); % new position y
+                    zTemp = z_cross + v(3); % new position z
+                end
+                
+                clear hitcap x_cross y_cross z_cross;
+                check = [xTemp; yTemp; zTemp]; % update next-to-be position
             end
+            x(:,c+1)  = check;
+            
+            % Julian's code and Ting's modification using function solve,
+            % which is very slow.
+            %             if abs(check(1,1)) > l % x dimension (along cell axis)
+            %                 if check(1,1) < 0
+            %                     xTemp(1,1) = check(1,1)+l;
+            %                     x(1,c+1) = -l - xTemp(1,1);
+            %                 else
+            %                     xTemp(1,1) = check(1,1)-l;
+            %                     x(1,c+1) = l - xTemp(1,1);
+            %                 end
+            %             else
+            %                 x(1,c+1) = check(1,1);
+            %             end
+            %
+            %             if sqrt(check(2,1)^2 + check(3,1)^2) > r % y and z dimension
+            %                 dTemp = sqrt(dx(2,c)^2 + dx(3,c)^2); % projected distance on y-z plane
+            %                 pass = 0;
+            %                 %--------------below modified by Ting Yan----------
+            %                 syms ycrx zcrx real
+            %                 [Sy, Sz] = solve(ycrx^2 + zcrx^2 == r^2, (ycrx - x(2,c))/dx(2,c) ==(zcrx - x(3,c))/dx(3,c), [ycrx, zcrx], 'Real', true);
+            %                 y_cross = double(Sy(sign(Sy-x(2,c)) == sign(dx(2,c)))); % the point where the molecule hits the boundary
+            %                 z_cross = double(Sz(sign(Sy-x(2,c)) == sign(dx(2,c))));
+            % %                 if isempty(y_cross)
+            % %                     c
+            % %                     x(:,c)
+            % %                     dx(:,c)
+            % %                     error
+            % %                 end
+            %
+            %                 reflected_d = dTemp - sqrt((y_cross - x(2,c))^2 +(z_cross-x(3,c))^2 ); % the length that is reflected into the cylinder
+            %                 a = randn(2,1);
+            %                 v = a*(reflected_d/sqrt(sum(a.^2)));
+            %                 yTemp = y_cross + v(1); % new position y
+            %                 zTemp = z_cross + v(2); % new position z
+            %
+            %                 while pass == 0
+            %                     if sqrt(yTemp^2 + zTemp^2)> r
+            %                         a = randn(2,1);
+            %                         v = a*(reflected_d/sqrt(sum(a.^2)));
+            %                         yTemp = y_cross + v(1);
+            %                         zTemp = z_cross + v(2);
+            %                     else
+            %                         pass = 1;
+            %                     end
+            %                 end
+            %                 %--------------modification done----------
+            %
+            %                 %                 while pass == 0
+            %                 %                     if sqrt(yTemp^2 + zTemp^2) > r % hit the boundary of the cylinder, redirect the molecule into the cells. Not reflect back.
+            %                 %                         a = randn(2,1);
+            %                 %                         v = a*(dTemp/sqrt(sum(a.^2)));
+            %                 %                         yTemp = x(2,c) + v(1);
+            %                 %                         zTemp = x(3,c) + v(2);
+            %                 %
+            %                 %                     else
+            %                 %                         pass = 1;
+            %                 %                     end
+            %                 %                 end
+            %                 x(2,c+1) = yTemp;
+            %                 x(3,c+1) = zTemp;
+            %             else
+            %                 x(2,c+1) = check(2,1);
+            %                 x(3,c+1) = check(3,1);
+            %             end
         end
         
         tempTrack = x';
-        
+        tracksFine{k} = tempTrack;
         %Inititalize variables
         photonsTot = [];
         xLoc = [];
@@ -180,20 +331,21 @@ for d = diffCoeff
         %idxTemp are the time indices of the trajectory (with short
         %time-steps) that correspond to the mid-point of the duration of
         %each of the frames
-        idxTemp = single(1+(k-1)*((exposure/dt)/100):(exposure/dt):n);
+        %          idxTemp = single(1+(k-1)*((exposure/dt)/100):(exposure/dt):n);  % what does this mean?
+        idxTemp = single(round((exposure/dt)/2):exposure/dt:n); %modified by Ting Yan
         idxTemp = idxTemp(2:end-1);
         %tracks final are the localizations in the track located at the
         %mid-point of the duration of the frame
         tracksFinal{k} = tempTrack(idxTemp,:);
         
-        if time(k,1) > T - ((n/(exposure/dt))-1)*exposure
+        if time(k,1) > T - ((n/(exposure/dt))-1)*exposure % exceeding total time
             tracksFinal{k} = [];
             tempTime = [];
         else
             tempTime = time(k,1):exposure:(time(k,1)+((n/(exposure/dt))-1)*exposure);
             tempTime = tempTime(2:end-1);
             
-            for s = 1:length(idxTemp)
+            for s = 1:length(idxTemp) % each frame in the track with fluorophores on
                 %idxTemp2 are the indices of time points throughout the
                 %duration of a frame. There are numAvg indices centered
                 %around the indices in idxTemp. These are used to query
@@ -206,7 +358,7 @@ for d = diffCoeff
                 stepImg = zeros(imgSize);
                 
                 
-                for t = 1:length(tracksTemp)
+                for t = 1:length(tracksTemp) % each frame from averaging 50 frames
                     stepImgTemp = zeros(imgSize);
                     
                     xPix = ceil(xCenter + tracksTemp(t,1)*1000/pixSize);
@@ -223,10 +375,10 @@ for d = diffCoeff
                     temp = abs(DHPSF_idx - tracksTemp(t,3));
                     [temp2 tempIdx] = min(temp);
                     tempImg = DHPSF_library{tempIdx};
-                    tempImg = fftshift(fft2(tempImg));
+                    tempImg = fftshift(fft2(tempImg)); % Fourier space
                     [xF,yF] = meshgrid(-15:15,-15:15);
-                    tempImg = tempImg.*exp(-1i*2*pi.*(xF*x0+yF*y0)/31);
-                    tempImg = ifft2(tempImg);
+                    tempImg = tempImg.*exp(-1i*2*pi.*(xF*x0+yF*y0)/31); % add to Fourier space
+                    tempImg = ifft2(tempImg); % generate DHPSF image
                     tempImg = abs(tempImg);
                     
                     xLocRelTemp = (0.5 + (xRel - xPix))*pixSize;
@@ -236,7 +388,7 @@ for d = diffCoeff
                     %DHPSF at that specific time point. stepImg is the sum
                     %of the DHPSF images at numAvg time points
                     stepImgTemp(yPix-15:yPix+15,xPix-15:xPix+15) = tempImg;
-                    stepImg = stepImg + stepImgTemp;
+                    stepImg = stepImg + stepImgTemp; % for each frame, add short time imges.
                 end
                 
                 %Normalize the image so that the sum of all pixels is equal
@@ -289,7 +441,7 @@ for d = diffCoeff
         
         k
     end
-    clear s v errorX errorY errorZ DHPSF_library DHPSF_idx a b x xTemp stepImg stepImgTemp
+    clear s v errorX errorY errorZ DHPSF_library DHPSF_idx a b x Sy Sz y_crx z_crx xTemp stepImg stepImgTemp
     
     totalImg = cell(numFrames,1);
     totalBkgndImg = cell(numFrames,1);
@@ -310,7 +462,7 @@ for d = diffCoeff
                     trackImgTot{goodStep(e)} = zeros(imgSize);
                     
                 end
-                temp1 = temp1 + trackImgTot{goodStep(e)};   
+                temp1 = temp1 + trackImgTot{goodStep(e)};
             end
         end
         regionTemp{c} = temp1;
@@ -367,17 +519,19 @@ for d = diffCoeff
     end
     
     %name the save file
-    filename{idx} = ['d', num2str(d),'_r', num2str(r*1000),'nm_L', ...
-        num2str(2*l*1000),'nm_dt',num2str(exposure*1000),'ms_',...
-        num2str(numTracks),'tracks_DHPSF'];
+    filename = ['d', num2str(d),'_r', num2str(r*1000),'nm_exposuretime',...
+        num2str(exposure*1000),'ms_',num2str(numTracks),'tracks_DHPSF2'];
     
     
     %remove images from fiberData so that the file can be saved properly
     fiberData = rmfield(fiberData,'trackImg');
     %save file
-    
-    filename{idx} = strrep(filename{idx}, '.', '-');
-    save([filename{idx} '.mat'],'-v7.3');
+    % test time part.
+%     time = toc;
+%     disp(['for d = 1, it takes up to ', num2str(ceil(time/3600)), ' hours'])
+    %     filename = strrep(filename, '.', '-');
+%     filename = fullfile(pathname, filename);
+    save('-v7.3', [filename '.mat']);
     
 end
 end
