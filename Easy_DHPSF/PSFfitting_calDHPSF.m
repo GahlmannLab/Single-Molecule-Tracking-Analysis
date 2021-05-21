@@ -66,8 +66,21 @@ switch(fittingMethod)
             fitParam(8) = mean(sigmaBounds);
             fitParam(9) = 0;
         end
-        lowerBound = [lB(b,1:8), -median(median(bkgndImg))];
-        upperBound = [uB(b,1:8),  median(median(bkgndImg))];
+        %modified by Alecia Achimovich 5/21/2021 - If median value of
+        %background image is negative, the result will be lower bound that
+        %exceeds the upper bound (lower bound will be positive, and upper
+        %bound will be negative. fmincon will error out.
+        
+        %lowerBound = [lB(b,1:8), -median(median(bkgndImg))]; 
+        %upperBound = [uB(b,1:8), median(median(bkgndImg))];
+        
+        %Crop corners of FOV to determine median.
+        ROImed = [data(1:10,1:10),data(cropHeight-9:cropHeight,1:10);data(1:10,cropWidth-9:cropWidth),data(cropHeight-9:cropHeight,cropWidth-9:cropWidth)];
+        lowerBound = [lB(b,1:8), 0]; 
+        upperBound = [uB(b,1:8),  1.5*median(median(ROImed))];
+        upperBound(1:2) = repmat(1.2*max(max(data(yIdx(:,1),xIdx(1,:)))),1,2);
+        %end modifications by Alecia Achimovich
+        
         upperBound(1:2) = repmat(1.2*max(max(data(yIdx(:,1),xIdx(1,:)))),1,2);
         
         hMLE= @(fitParam)Likelihood( fitParam, data(yIdx(:,1),xIdx(1,:)), bkgndImg(yIdx(:,1),xIdx(1,:)), datavar(yIdx(:,1),xIdx(1,:)), xIdx,yIdx);
